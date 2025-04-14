@@ -1,0 +1,26 @@
+.upload-input__fileinput {
+    opacity: 0;
+    position: absolute;
+    z-index: 0;
+    width: 200px;
+    height: 100px;
+}
+
+.upload-input__button {
+    border: 1px solid red;
+    border-radius: 5px;
+    width: 100%;
+    height: 100px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.upload-input {
+    margin: 10px auto;
+    width: 200px;
+    cursor: pointer;
+}
+
+canvas {
+    margin: 0 auto;
+}

@@ -41,9 +41,8 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     <canvas 
       ref={canvasRef} 
       style={{ 
+        maxHeight: '80vh',
         display: 'block',
-        maxHeight: '80%',
-        height: 'auto',
         backgroundColor: '#f0f0f0'
       }} 
     />
