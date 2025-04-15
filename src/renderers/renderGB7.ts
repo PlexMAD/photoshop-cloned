@@ -20,13 +20,13 @@ export async function renderGB7(blob: Blob, canvasRef: MutableRefObject<HTMLCanv
 
     const imageData = ctx.createImageData(width, height);
     const pixels = new Uint8Array(buffer, 12); 
-
+    console.log(pixels)
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const i = y * width + x;
         const pixel = pixels[i];
         const gray = (pixel & 0x7F) << 1;
-        const isTransparent = hasMask && (pixel & 0x80);
+        const isTransparent = hasMask && !(pixel & 0x80);
 
         const pos = (y * width + x) * 4;
         imageData.data[pos] = gray;     
@@ -35,7 +35,7 @@ export async function renderGB7(blob: Blob, canvasRef: MutableRefObject<HTMLCanv
         imageData.data[pos + 3] = isTransparent ? 0 : 255; 
       }
     }
-
+    console.log(imageData)
     ctx.putImageData(imageData, 0, 0);
   } catch (error) {
     console.error('Ошибка декодирования GB7:', error);
