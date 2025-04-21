@@ -1,31 +1,27 @@
-import { MutableRefObject } from 'react';
 
-export async function renderStandardImage(blob: Blob, canvasRef: MutableRefObject<HTMLCanvasElement | null>) {
-  if (!canvasRef.current) return;
-
+export async function renderStandardImage(blob: Blob): Promise<ImageData> {
   const imageUrl = URL.createObjectURL(blob);
   const img = new Image();
 
-  return new Promise<void>((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     img.onload = () => {
       try {
-        if (!canvasRef.current) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
+        const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas context not available');
+
         ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
         URL.revokeObjectURL(imageUrl);
-        resolve();
+        resolve(imageData);
       } catch (error) {
         reject(error);
       }
     };
 
     img.onerror = () => {
-      console.error('Ошибка загрузки изображения');
       URL.revokeObjectURL(imageUrl);
       reject(new Error('Ошибка загрузки изображения'));
     };
