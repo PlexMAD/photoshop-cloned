@@ -1,23 +1,24 @@
 export const getColorDepth = (imageData: ImageData, mimeType: string): string => {
-  const totalPixels = imageData.width * imageData.height;
   const data = imageData.data;
-  const channels = data.length / totalPixels;
   const bitsPerChannel = 8;
-  const totalBitsPerPixel = bitsPerChannel * channels;
 
-  const isGrayscale = (() => {
-    if (channels < 3) return false;
+  let hasTransparency = false;
+  let isGrayscale = true;
 
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i] !== data[i + 1] || data[i] !== data[i + 2]) {
-        return false;
-      }
-    }
-    return true;
-  })();
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+
+    if (a < 255) hasTransparency = true;
+    if (r !== g || r !== b) isGrayscale = false;
+
+    if (hasTransparency && !isGrayscale) break;
+  }
 
   if (isGrayscale) {
-    return '8-bit grayscale';
+    return hasTransparency ? '8-bit grayscale + alpha' : '8-bit grayscale';
   }
 
   if (mimeType === 'image/jpeg') {
@@ -25,9 +26,12 @@ export const getColorDepth = (imageData: ImageData, mimeType: string): string =>
   }
 
   if (mimeType === 'image/png') {
-    if (channels === 4) return '32-bit RGBA (8×4)';
-    if (channels === 3) return '24-bit RGB (8×3)';
+    if (hasTransparency) return '32-bit RGBA (8×4)';
+    return '24-bit RGB (8×3)';
   }
+
+  const channels = hasTransparency ? 4 : 3;
+  const totalBitsPerPixel = bitsPerChannel * channels;
 
   return `${totalBitsPerPixel}-bit (${bitsPerChannel}×${channels}, неопределено)`;
 };
