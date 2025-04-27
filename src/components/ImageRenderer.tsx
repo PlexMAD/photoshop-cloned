@@ -1,10 +1,13 @@
 import { FC, useEffect, useState } from 'react';
+import { Button } from 'antd';
 import { renderGB7 } from '../utils/renderGB7';
 import { renderStandardImage } from '../utils/renderStandartImages';
 import { getColorDepth } from '../utils/getColorDepth';
 import StatusBar from './StatusBar';
 import CanvasRenderer from './CanvasRenderer';
- 
+import { resizeImageData, ImageDataResizeOptions } from '../utils/imageResize';
+import ImageResizerModal from './ImageResizerModal';
+
 
 interface ImageRendererProps {
   image: Blob;
@@ -19,6 +22,7 @@ interface ImageInfo {
 const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
     const render = async () => {
@@ -54,14 +58,39 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     };
   }, [image]);
 
+  const handleResize = (options: ImageDataResizeOptions) => {
+    if (!imageData) return;
+    const resized = resizeImageData(imageData, options);
+    setImageData(resized);
+    setImageInfo({
+      width: resized.width,
+      height: resized.height,
+      colorDepth: imageInfo?.colorDepth || 'Unknown',
+    });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {imageData && <CanvasRenderer imageData={imageData} />}
       {imageInfo && (
-        <StatusBar
-          width={imageInfo.width}
-          height={imageInfo.height}
-          colorDepth={imageInfo.colorDepth}
+        <>
+          <StatusBar
+            width={imageInfo.width}
+            height={imageInfo.height}
+            colorDepth={imageInfo.colorDepth}
+          />
+          <Button onClick={() => setIsModalVisible(true)} style={{ marginTop: 16 }}>
+            Изменить масштаб
+          </Button>
+        </>
+      )}
+      {imageInfo && (
+        <ImageResizerModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onResize={handleResize}
+          originalWidth={imageInfo.width}
+          originalHeight={imageInfo.height}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import { FC, useRef, useEffect } from 'react';
+import { FC, useRef, useEffect, useState } from 'react';
 
 interface CanvasRendererProps {
   imageData: ImageData;
@@ -6,38 +6,64 @@ interface CanvasRendererProps {
 
 const CanvasRenderer: FC<CanvasRendererProps> = ({ imageData }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      const padding = 50;
+      setCanvasSize({
+        width: window.innerWidth - padding * 2,
+        height: window.innerHeight - padding * 2,
+      });
+    };
+
+    updateCanvasSize();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) return;
 
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
+    canvas.width = canvasSize.width;
+    canvas.height = canvasSize.height;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.putImageData(imageData, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const scale = Math.min(
+      canvas.width / imageData.width,
+      canvas.height / imageData.height
+    );
+
+    const scaledWidth = imageData.width * scale;
+    const scaledHeight = imageData.height * scale;
+
+    
+    const offsetX = (canvas.width - scaledWidth) / 2;
+    const offsetY = (canvas.height - scaledHeight) / 2;
+
+    
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = imageData.width;
+    tmpCanvas.height = imageData.height;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    if (!tmpCtx) return;
+
+    tmpCtx.putImageData(imageData, 0, 0);
+
+    ctx.drawImage(tmpCanvas, 0, 0, imageData.width, imageData.height, offsetX, offsetY, scaledWidth, scaledHeight);
 
     return () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [imageData]);
+  }, [imageData, canvasSize]);
 
   return (
     <canvas
       ref={canvasRef}
-      style={{
-        maxHeight: '80vh',
-        display: 'block',
-        backgroundImage: `
-          linear-gradient(45deg, #ccc 25%, transparent 25%),
-          linear-gradient(-45deg, #ccc 25%, transparent 25%),
-          linear-gradient(45deg, transparent 75%, #ccc 75%),
-          linear-gradient(-45deg, transparent 75%, #ccc 75%)`,
-        backgroundSize: '20px 20px',
-        backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
-      }}
+      className='canvas'
     />
   );
 };
