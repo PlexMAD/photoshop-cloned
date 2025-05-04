@@ -101,7 +101,7 @@ const ImageResizerModal: React.FC<Props> = ({ visible, onClose, onResize, origin
   const resized = getResizedDimensions();
 
   return (
-    <Modal title="Изменение масштаба изображения" open={visible} onCancel={onClose} footer={null}>
+    <Modal title="Изменение размеры изображения" open={visible} onCancel={onClose} footer={null}>
       <div style={{ marginBottom: 12 }}>
         <b>До:</b> {originalWidth} × {originalHeight} = {megapixels(originalWidth, originalHeight)} Мп <br />
         <b>После:</b> {resized.width} × {resized.height} = {resized.mp} Мп

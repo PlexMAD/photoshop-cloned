@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { Button } from 'antd';
+import { Button, Select } from 'antd'; // импорт Select
 import { renderGB7 } from '../utils/renderGB7';
 import { renderStandardImage } from '../utils/renderStandartImages';
 import { getColorDepth } from '../utils/getColorDepth';
@@ -8,6 +8,7 @@ import CanvasRenderer from './CanvasRenderer';
 import { resizeImageData, ImageDataResizeOptions } from '../utils/imageResize';
 import ImageResizerModal from './ImageResizerModal';
 
+const { Option } = Select;
 
 interface ImageRendererProps {
   image: Blob;
@@ -23,6 +24,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [scalePercent, setScalePercent] = useState(100); // Масштаб в %
 
   useEffect(() => {
     const render = async () => {
@@ -69,9 +71,13 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     });
   };
 
+  const scale = scalePercent / 100;
+
+  const scaleOptions = [12, 25, 50, 75, 100, 150, 200, 300];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      {imageData && <CanvasRenderer imageData={imageData} />}
+      {imageData && <CanvasRenderer imageData={imageData} scale={scale} />}
       {imageInfo && (
         <>
           <StatusBar
@@ -79,9 +85,23 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
             height={imageInfo.height}
             colorDepth={imageInfo.colorDepth}
           />
-          <Button onClick={() => setIsModalVisible(true)} style={{ marginTop: 16 }}>
-            Изменить масштаб
-          </Button>
+
+          <div style={{ marginTop: 16, display: 'flex', gap: 12, alignItems: 'center', zIndex: '1' }}>
+            <span>Масштаб:</span>
+            <Select
+              value={scalePercent}
+              onChange={(val) => setScalePercent(val)}
+              style={{ width: 120 }}
+            >
+              {scaleOptions.map((percent) => (
+                <Option key={percent} value={percent}>
+                  {percent}%
+                </Option>
+              ))}
+            </Select>
+
+            <Button onClick={() => setIsModalVisible(true)}>Изменить размеры изображения</Button>
+          </div>
         </>
       )}
       {imageInfo && (

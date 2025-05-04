@@ -1,10 +1,11 @@
-import { FC, useRef, useEffect, useState } from 'react';
+import { FC, useRef, useState, useEffect } from "react";
 
 interface CanvasRendererProps {
   imageData: ImageData;
+  scale: number; 
 }
 
-const CanvasRenderer: FC<CanvasRendererProps> = ({ imageData }) => {
+const CanvasRenderer: FC<CanvasRendererProps> = ({ imageData, scale }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
@@ -18,6 +19,8 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({ imageData }) => {
     };
 
     updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    return () => window.removeEventListener('resize', updateCanvasSize);
   }, []);
 
   useEffect(() => {
@@ -32,19 +35,12 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({ imageData }) => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const scale = Math.min(
-      canvas.width / imageData.width,
-      canvas.height / imageData.height
-    );
-
     const scaledWidth = imageData.width * scale;
     const scaledHeight = imageData.height * scale;
 
-    
     const offsetX = (canvas.width - scaledWidth) / 2;
     const offsetY = (canvas.height - scaledHeight) / 2;
 
-    
     const tmpCanvas = document.createElement('canvas');
     tmpCanvas.width = imageData.width;
     tmpCanvas.height = imageData.height;
@@ -58,14 +54,10 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({ imageData }) => {
     return () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [imageData, canvasSize]);
+  }, [imageData, canvasSize, scale]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className='canvas'
-    />
-  );
+  return <canvas ref={canvasRef} className="canvas" />;
 };
+
 
 export default CanvasRenderer;
