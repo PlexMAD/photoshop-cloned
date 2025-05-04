@@ -17,6 +17,8 @@ const ImageResizerModal: React.FC<Props> = ({ visible, onClose, onResize, origin
   const [linked, setLinked] = useState(true);
   const [unit, setUnit] = useState<'px' | '%'>('px');
   const [algoDesc, setAlgoDesc] = useState('');
+  const [resizedWidth, setResizedWidth] = useState(originalWidth);
+  const [resizedHeight, setResizedHeight] = useState(originalHeight);
 
   const aspectRatio = originalWidth / originalHeight;
 
@@ -31,16 +33,28 @@ const ImageResizerModal: React.FC<Props> = ({ visible, onClose, onResize, origin
   }, [form]);
 
   const handleValuesChange = (changed: any, all: any) => {
+    let width = all.width;
+    let height = all.height;
+
     if (linked && ('width' in changed || 'height' in changed)) {
       const field = 'width' in changed ? 'width' : 'height';
       const val = changed[field];
 
       if (field === 'width') {
-        form.setFieldsValue({ height: unit === 'px' ? Math.round(val / aspectRatio) : val });
+        const newHeight = unit === 'px' ? Math.round(val / aspectRatio) : val;
+        form.setFieldsValue({ height: newHeight });
+        height = newHeight;
+        width = val;
       } else {
-        form.setFieldsValue({ width: unit === 'px' ? Math.round(val * aspectRatio) : val });
+        const newWidth = unit === 'px' ? Math.round(val * aspectRatio) : val;
+        form.setFieldsValue({ width: newWidth });
+        width = newWidth;
+        height = val;
       }
     }
+
+    setResizedWidth(width);
+    setResizedHeight(height);
   };
 
   const handleFinish = (values: any) => {
@@ -67,16 +81,42 @@ const ImageResizerModal: React.FC<Props> = ({ visible, onClose, onResize, origin
 
   const megapixels = (w: number, h: number) => ((w * h) / 1_000_000).toFixed(2);
 
+  const getResizedDimensions = () => {
+    if (unit === '%') {
+      const widthPx = Math.round(originalWidth * (resizedWidth / 100));
+      const heightPx = Math.round(originalHeight * (resizedHeight / 100));
+      return {
+        width: widthPx,
+        height: heightPx,
+        mp: megapixels(widthPx, heightPx),
+      };
+    }
+    return {
+      width: resizedWidth,
+      height: resizedHeight,
+      mp: megapixels(resizedWidth, resizedHeight),
+    };
+  };
+
+  const resized = getResizedDimensions();
+
   return (
     <Modal title="Изменение масштаба изображения" open={visible} onCancel={onClose} footer={null}>
       <div style={{ marginBottom: 12 }}>
         <b>До:</b> {originalWidth} × {originalHeight} = {megapixels(originalWidth, originalHeight)} Мп <br />
-        <b>После:</b>{' '}
-        <Form form={form} layout="inline" onValuesChange={handleValuesChange} onFinish={handleFinish} initialValues={{
-          width: unit === '%' ? 100 : originalWidth,
-          height: unit === '%' ? 100 : originalHeight,
-          algorithm: 'bilinear',
-        }}>
+        <b>После:</b> {resized.width} × {resized.height} = {resized.mp} Мп
+        <Form
+          form={form}
+          layout="inline"
+          onValuesChange={handleValuesChange}
+          onFinish={handleFinish}
+          initialValues={{
+            width: unit === '%' ? 100 : originalWidth,
+            height: unit === '%' ? 100 : originalHeight,
+            algorithm: 'bilinear',
+          }}
+          style={{ marginTop: 16 }}
+        >
           <Select value={unit} onChange={val => setUnit(val)} style={{ width: 100 }}>
             <Option value="px">Пиксели</Option>
             <Option value="%">Проценты</Option>
