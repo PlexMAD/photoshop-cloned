@@ -9,6 +9,7 @@ import { resizeImageData, ImageDataResizeOptions } from '../utils/imageResize';
 import ImageResizerModal from './ImageResizerModal';
 import ScaleSelector from './ScaleSelector';
 import ToolPanel, { Tool } from './ToolPanel';
+import EyeDropperInfo from './EyeDropperInfo';
 
 interface ImageRendererProps {
   image: Blob;
@@ -25,14 +26,18 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [scalePercent, setScalePercent] = useState(100);
-  const [activeTool, setActiveTool] = useState<Tool | null>(null); // состояние для активного инструмента
+  const [activeTool, setActiveTool] = useState<Tool | null>(null);
+
+  const [primaryColor, setPrimaryColor] = useState<string | null>(null);
+  const [secondaryColor, setSecondaryColor] = useState<string | null>(null);
 
   useEffect(() => {
     const render = async () => {
       if (!image) return;
 
       try {
-        const isGB7 = image.type === 'application/gb7' ||
+        const isGB7 =
+          image.type === 'application/gb7' ||
           (image instanceof File && image.name.toLowerCase().endsWith('.gb7'));
 
         const data = isGB7
@@ -75,9 +80,20 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <ToolPanel activeTool={activeTool} setActiveTool={setActiveTool} />
-      
-      {imageData && <CanvasRenderer imageData={imageData} scale={scale} />}
-      
+
+      {imageData && (
+        <CanvasRenderer
+          imageData={imageData}
+          scale={scale}
+          activeTool={activeTool}
+          onColorPick={(color, isSecondary) => {
+            isSecondary ? setSecondaryColor(color) : setPrimaryColor(color);
+          }}
+        />
+      )}
+
+      {activeTool==='eyedropper' && (<EyeDropperInfo primaryColor={primaryColor} secondaryColor={secondaryColor} />)}
+
       {imageInfo && (
         <>
           <StatusBar
@@ -85,7 +101,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
             height={imageInfo.height}
             colorDepth={imageInfo.colorDepth}
           />
-          <div className='image-manipulators'>
+          <div className="image-manipulators">
             <ScaleSelector scalePercent={scalePercent} onChange={setScalePercent} />
             <Button onClick={() => setIsModalVisible(true)}>
               Изменить размер изображения

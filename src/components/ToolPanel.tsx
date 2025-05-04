@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { startKeyUX, hotkeyKeyUX, pressKeyUX } from 'keyux';
+import { startKeyUX, hotkeyKeyUX, pressKeyUX, hotkeyOverrides } from 'keyux';
+
 
 export type Tool = 'eyedropper' | 'hand';
 
@@ -7,15 +8,15 @@ interface ToolPanelProps {
   activeTool: Tool | null;
   setActiveTool: (tool: Tool) => void;
 }
-
+/* const overrides = hotkeyOverrides({ 'alt+b': 'H' }) */
 const ToolPanel: React.FC<ToolPanelProps> = ({ activeTool, setActiveTool }) => {
-  useEffect(() => {
-    startKeyUX(window, [hotkeyKeyUX(), pressKeyUX('is-pressed')]);
-  }, []);
+/*   useEffect(() => {
+    startKeyUX(window, [hotkeyKeyUX([overrides]), pressKeyUX('is-pressed')]);
+  }, []); */
 
   const tools = [
-    { id: 'eyedropper', name: 'Пипетка', shortcut: 'I', icon: '🧪' },
-    { id: 'hand', name: 'Рука', shortcut: 'H', icon: '✋' },
+    { id: 'eyedropper', name: 'Пипетка', shortcut: 'H', icon: '🧪' },
+    { id: 'hand', name: 'Рука', shortcut: 'I', icon: '✋' },
   ] as const;
 
   return (
