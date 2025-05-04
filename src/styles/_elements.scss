@@ -68,3 +68,31 @@ canvas {
     margin-top: 15px;
   }
   
+  .tool-panel {
+    display: flex;
+    gap: 10px;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+  }
+  
+  .tool-panel button {
+    padding: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    border: none;
+    background: #f0f0f0;
+    border-radius: 5px;
+    transition: background 0.3s;
+  }
+  
+  .tool-panel button:hover {
+    background: #ddd;
+  }
+  
+  .tool-panel button.active {
+    background: #ccc;
+    border: 2px solid #666;
+  }
+  

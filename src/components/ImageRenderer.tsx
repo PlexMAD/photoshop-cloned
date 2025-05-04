@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import { Button } from 'antd';
 import { renderGB7 } from '../utils/renderGB7';
 import { renderStandardImage } from '../utils/renderStandartImages';
@@ -8,6 +8,7 @@ import CanvasRenderer from './CanvasRenderer';
 import { resizeImageData, ImageDataResizeOptions } from '../utils/imageResize';
 import ImageResizerModal from './ImageResizerModal';
 import ScaleSelector from './ScaleSelector';
+import ToolPanel, { Tool } from './ToolPanel';
 
 interface ImageRendererProps {
   image: Blob;
@@ -23,7 +24,8 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [scalePercent, setScalePercent] = useState(100); 
+  const [scalePercent, setScalePercent] = useState(100);
+  const [activeTool, setActiveTool] = useState<Tool | null>(null); // состояние для активного инструмента
 
   useEffect(() => {
     const render = async () => {
@@ -72,7 +74,10 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <ToolPanel activeTool={activeTool} setActiveTool={setActiveTool} />
+      
       {imageData && <CanvasRenderer imageData={imageData} scale={scale} />}
+      
       {imageInfo && (
         <>
           <StatusBar
@@ -88,6 +93,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           </div>
         </>
       )}
+
       {imageInfo && (
         <ImageResizerModal
           visible={isModalVisible}
