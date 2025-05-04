@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { Button, Select } from 'antd'; // импорт Select
+import { Button } from 'antd';
 import { renderGB7 } from '../utils/renderGB7';
 import { renderStandardImage } from '../utils/renderStandartImages';
 import { getColorDepth } from '../utils/getColorDepth';
@@ -7,8 +7,7 @@ import StatusBar from './StatusBar';
 import CanvasRenderer from './CanvasRenderer';
 import { resizeImageData, ImageDataResizeOptions } from '../utils/imageResize';
 import ImageResizerModal from './ImageResizerModal';
-
-const { Option } = Select;
+import ScaleSelector from './ScaleSelector';
 
 interface ImageRendererProps {
   image: Blob;
@@ -24,7 +23,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [scalePercent, setScalePercent] = useState(100); // Масштаб в %
+  const [scalePercent, setScalePercent] = useState(100); 
 
   useEffect(() => {
     const render = async () => {
@@ -32,14 +31,13 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
 
       try {
         const isGB7 = image.type === 'application/gb7' ||
-                     (image instanceof File && image.name.toLowerCase().endsWith('.gb7'));
+          (image instanceof File && image.name.toLowerCase().endsWith('.gb7'));
 
         const data = isGB7
           ? await renderGB7(image)
           : await renderStandardImage(image);
 
         setImageData(data);
-
         setImageInfo({
           width: data.width,
           height: data.height,
@@ -53,7 +51,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     };
 
     render();
-
     return () => {
       setImageInfo(null);
       setImageData(null);
@@ -73,8 +70,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
 
   const scale = scalePercent / 100;
 
-  const scaleOptions = [12, 25, 50, 75, 100, 150, 200, 300];
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {imageData && <CanvasRenderer imageData={imageData} scale={scale} />}
@@ -85,22 +80,11 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
             height={imageInfo.height}
             colorDepth={imageInfo.colorDepth}
           />
-
-          <div style={{ marginTop: 16, display: 'flex', gap: 12, alignItems: 'center', zIndex: '1' }}>
-            <span>Масштаб:</span>
-            <Select
-              value={scalePercent}
-              onChange={(val) => setScalePercent(val)}
-              style={{ width: 120 }}
-            >
-              {scaleOptions.map((percent) => (
-                <Option key={percent} value={percent}>
-                  {percent}%
-                </Option>
-              ))}
-            </Select>
-
-            <Button onClick={() => setIsModalVisible(true)}>Изменить размеры изображения</Button>
+          <div className='image-manipulators'>
+            <ScaleSelector scalePercent={scalePercent} onChange={setScalePercent} />
+            <Button onClick={() => setIsModalVisible(true)}>
+              Изменить размер изображения
+            </Button>
           </div>
         </>
       )}

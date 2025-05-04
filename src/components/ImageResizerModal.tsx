@@ -23,7 +23,7 @@ const ImageResizerModal: React.FC<Props> = ({ visible, onClose, onResize, origin
   const aspectRatio = originalWidth / originalHeight;
 
   const algorithmDescriptions: Record<string, string> = {
-    'nearest': 'Быстрая, но может выглядеть пикселизированной. Хорошо подходит для пиксель-арта.',
+    'nearest': 'Быстрый, но может выглядеть пикселизированно. Хорошо подходит для пиксель-арта.',
     'bilinear': 'Более гладкое изображение. Хороший общий вариант.',
   };
 
