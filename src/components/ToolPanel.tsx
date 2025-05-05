@@ -8,15 +8,15 @@ interface ToolPanelProps {
   activeTool: Tool | null;
   setActiveTool: (tool: Tool) => void;
 }
-/* const overrides = hotkeyOverrides({ 'alt+b': 'H' }) */
+const overrides = hotkeyOverrides({})
 const ToolPanel: React.FC<ToolPanelProps> = ({ activeTool, setActiveTool }) => {
-/*   useEffect(() => {
+  useEffect(() => {
     startKeyUX(window, [hotkeyKeyUX([overrides]), pressKeyUX('is-pressed')]);
-  }, []); */
+  }, []);
 
   const tools = [
-    { id: 'eyedropper', name: 'Пипетка', shortcut: 'H', icon: '🧪' },
-    { id: 'hand', name: 'Рука', shortcut: 'I', icon: '✋' },
+    { id: 'eyedropper', name: 'Пипетка', shortcut: 'E', icon: '🧪' },
+    { id: 'hand', name: 'Рука', shortcut: 'H', icon: '✋' },
   ] as const;
 
   return (

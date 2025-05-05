@@ -5,7 +5,7 @@ interface CanvasRendererProps {
   imageData: ImageData;
   scale: number;
   activeTool: Tool | null;
-  onColorPick?: (color: string, isSecondary: boolean) => void;
+  onColorPick?: (color: string, isSecondary: boolean, x: number, y: number) => void;
 }
 
 const CanvasRenderer: FC<CanvasRendererProps> = ({
@@ -96,6 +96,7 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
       ) {
         return;
       }
+      console.log(x, y)
 
       const index = (y * imageData.width + x) * 4;
       const [r, g, b] = [
@@ -108,7 +109,7 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
 
       const isSecondary = e.altKey || e.ctrlKey || e.shiftKey;
 
-      onColorPick?.(color, isSecondary);
+      onColorPick?.(color, isSecondary, x, y);
     };
 
     canvas.addEventListener('click', handleClick);

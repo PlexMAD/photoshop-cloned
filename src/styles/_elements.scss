@@ -122,3 +122,35 @@ canvas {
     background-clip: padding-box;
   }
   
+  .tooltip-container {
+    position: relative;
+    display: inline-block;
+    margin-right: 1rem;
+    cursor: help;
+    outline: none;
+  }
+  
+  .tooltip-content {
+    visibility: hidden;
+    opacity: 0;
+    width: max-content;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 4px;
+    padding: 6px 8px;
+    position: absolute;
+    z-index: 10;
+    top: 100%;
+    left: 0;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+  
+  .tooltip-container:hover .tooltip-content,
+  .tooltip-container:focus .tooltip-content {
+    visibility: visible;
+    opacity: 1;
+  }
+  

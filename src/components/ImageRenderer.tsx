@@ -30,6 +30,10 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
 
   const [primaryColor, setPrimaryColor] = useState<string | null>(null);
   const [secondaryColor, setSecondaryColor] = useState<string | null>(null);
+  const [primaryX, setPrimaryX] = useState<number | null>(null);
+  const [primaryY, setPrimaryY] = useState<number | null>(null);
+  const [secondaryX, setSecondaryX] = useState<number | null>(null);
+  const [secondaryY, setSecondaryY] = useState<number | null>(null);
 
   useEffect(() => {
     const render = async () => {
@@ -50,6 +54,8 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           height: data.height,
           colorDepth: getColorDepth(data, image.type),
         });
+        console.log(data.height)
+        setScalePercent(Math.min(100/(data.height/window.innerHeight), 100/(data.width/window.innerWidth)))
       } catch (error) {
         console.error('Ошибка при отрисовке:', error);
         setImageInfo(null);
@@ -86,13 +92,23 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           imageData={imageData}
           scale={scale}
           activeTool={activeTool}
-          onColorPick={(color, isSecondary) => {
-            isSecondary ? setSecondaryColor(color) : setPrimaryColor(color);
+          onColorPick={(color, isSecondary, x, y) => {
+            if (isSecondary) {
+              setSecondaryColor(color)
+              setSecondaryX(x)
+              setSecondaryY(y)
+            }
+            else {
+              setPrimaryColor(color)
+              setPrimaryX(x)
+              setPrimaryY(y)
+            }
+            
           }}
         />
       )}
 
-      {activeTool==='eyedropper' && (<EyeDropperInfo primaryColor={primaryColor} secondaryColor={secondaryColor} />)}
+      {activeTool==='eyedropper' && (<EyeDropperInfo primaryColor={primaryColor} secondaryColor={secondaryColor} primaryX={primaryX} primaryY={primaryY} secondaryX={secondaryX} secondaryY={secondaryY} />)}
 
       {imageInfo && (
         <>

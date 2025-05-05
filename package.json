@@ -12,6 +12,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.1",
     "antd": "^5.24.8",
+    "culori": "^4.0.1",
     "keyux": "^0.11.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -43,5 +44,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/culori": "^4.0.0"
   }
 }
