@@ -8,7 +8,7 @@ export function luminance(r: number, g: number, b: number): number {
     return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
   }
   
-  // Функция для извлечения значений RGB из строки формата rgb(r, g, b)
+  // Функция для извлечения значений RGB из строки формата rgb(r, g, b) <--------
   export function rgbToRgbArray(rgb: string): { r: number, g: number, b: number } | null {
     const result = rgb.match(/^rgb\((\d+), (\d+), (\d+)\)$/);
     if (result) {

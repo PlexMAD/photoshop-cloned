@@ -14,3 +14,5 @@ export function colorConverter(color: string) {
     OKLch: toOKLch(parsed)
   };
 }
+
+// Свое

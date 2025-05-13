@@ -101,8 +101,8 @@ const ImageResizerModal: React.FC<Props> = ({ visible, onClose, onResize, origin
   const resized = getResizedDimensions();
 
   return (
-    <Modal title="Изменение размеры изображения" open={visible} onCancel={onClose} footer={null}>
-      <div style={{ marginBottom: 12 }}>
+    <Modal title="Изменение размеры изображения" open={visible} onCancel={onClose} footer={null} width={1200}   >
+      <div style={{ marginBottom: 12}}>
         <b>До:</b> {originalWidth} × {originalHeight} = {megapixels(originalWidth, originalHeight)} Мп <br />
         <b>После:</b> {resized.width} × {resized.height} = {resized.mp} Мп
         <Form
@@ -121,10 +121,10 @@ const ImageResizerModal: React.FC<Props> = ({ visible, onClose, onResize, origin
             <Option value="px">Пиксели</Option>
             <Option value="%">Проценты</Option>
           </Select>
-          <Form.Item name="width" rules={[{ required: true, type: 'number', min: 1, max: 10000 }]}>
+          <Form.Item name="width" rules={[{ required: true, type: 'number', min: 1, max: 10000, message: 'Ширина должна быть от 1 до 10000' }]}>
             <InputNumber addonBefore="Ширина" />
           </Form.Item>
-          <Form.Item name="height" rules={[{ required: true, type: 'number', min: 1, max: 10000 }]}>
+          <Form.Item name="height" rules={[{ required: true, type: 'number', min: 1, max: 10000, message: 'Высота должна быть от 1 до 10000' }]}>
             <InputNumber addonBefore="Высота" />
           </Form.Item>
           <Checkbox checked={linked} onChange={e => setLinked(e.target.checked)}>

@@ -54,7 +54,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           height: data.height,
           colorDepth: getColorDepth(data, image.type),
         });
-        console.log(data.height)
         setScalePercent(Math.min(100/(data.height/(window.innerHeight-100)), 100/(data.width/(window.innerWidth-100))))
       } catch (error) {
         console.error('Ошибка при отрисовке:', error);
