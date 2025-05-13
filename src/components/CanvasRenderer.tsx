@@ -1,5 +1,6 @@
-import React, { FC, useRef, useState, useEffect } from 'react';
+import { FC, useRef, useState, useEffect, useMemo } from 'react';
 import { Tool } from './ToolPanel';
+import { resizeImageData } from '../utils/imageResize';
 
 interface CanvasRendererProps {
   imageData: ImageData;
@@ -16,8 +17,16 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const [offset, setOffset] = useState<{ x: number; y: number }>({x: 0, y: 0});
+  const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+
+  const resizedImageData = useMemo(() => {
+    return resizeImageData(imageData, {
+      width: Math.max(1, Math.round(imageData.width * scale)),
+      height: Math.max(1, Math.round(imageData.height * scale)),
+      algorithm: 'bilinear',
+    });
+  }, [imageData, scale]);
 
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -45,46 +54,38 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const scaledWidth = imageData.width * scale;
-    const scaledHeight = imageData.height * scale;
-    
+    const scaledWidth = resizedImageData.width;
+    const scaledHeight = resizedImageData.height;
 
     const tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = imageData.width;
-    tmpCanvas.height = imageData.height;
+    tmpCanvas.width = scaledWidth;
+    tmpCanvas.height = scaledHeight;
     const tmpCtx = tmpCanvas.getContext('2d');
     if (!tmpCtx) return;
 
-    tmpCtx.putImageData(imageData, 0, 0);
+    tmpCtx.putImageData(resizedImageData, 0, 0);
 
-    ctx.drawImage(
-      tmpCanvas,
-      0,
-      0,
-      imageData.width,
-      imageData.height,
-      offset.x,
-      offset.y,
-      scaledWidth,
-      scaledHeight
-    );
+    // Draw the resized image at offset position
+    ctx.drawImage(tmpCanvas, offset.x, offset.y);
 
     return () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [imageData, canvasSize, scale, offset]);
+  }, [resizedImageData, canvasSize, offset]);
+
   useEffect(() => {
-    if (offset.x !== 0 && offset.y !== 0) return; 
+    if (offset.x !== 0 && offset.y !== 0) return;
     if (!canvasSize.width || !canvasSize.height) return;
-  
-    const scaledWidth = imageData.width * scale;
-    const scaledHeight = imageData.height * scale;
-  
+
+    const scaledWidth = Math.max(1, Math.round(imageData.width * scale));
+    const scaledHeight = Math.max(1, Math.round(imageData.height * scale));
+
     const centerX = (canvasSize.width - scaledWidth) / 2;
     const centerY = (canvasSize.height - scaledHeight) / 2;
-  
+
     setOffset({ x: centerX, y: centerY });
-  }, [canvasSize, imageData, scale, offset]);
+  }, [canvasSize, imageData, scale]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -93,15 +94,13 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
       if (activeTool !== 'eyedropper') return;
 
       const rect = canvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left - offset.x) / scale);
-      const y = Math.floor((e.clientY - rect.top - offset.y) / scale);
+      // Adjust coordinates for scaled image
+      const scaledWidth = Math.max(1, Math.round(imageData.width * scale));
+      const scaledHeight = Math.max(1, Math.round(imageData.height * scale));
+      const x = Math.floor((e.clientX - rect.left - offset.x) * (imageData.width / scaledWidth));
+      const y = Math.floor((e.clientY - rect.top - offset.y) * (imageData.height / scaledHeight));
 
-      if (
-        x < 0 ||
-        y < 0 ||
-        x >= imageData.width ||
-        y >= imageData.height
-      ) {
+      if (x < 0 || y < 0 || x >= imageData.width || y >= imageData.height) {
         return;
       }
 
