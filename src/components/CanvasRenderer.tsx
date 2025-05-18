@@ -65,7 +65,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
 
     tmpCtx.putImageData(resizedImageData, 0, 0);
 
-    // Draw the resized image at offset position
     ctx.drawImage(tmpCanvas, offset.x, offset.y);
 
     return () => {
@@ -94,7 +93,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
       if (activeTool !== 'eyedropper') return;
 
       const rect = canvas.getBoundingClientRect();
-      // Adjust coordinates for scaled image
       const scaledWidth = Math.max(1, Math.round(imageData.width * scale));
       const scaledHeight = Math.max(1, Math.round(imageData.height * scale));
       const x = Math.floor((e.clientX - rect.left - offset.x) * (imageData.width / scaledWidth));
