@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { colorConverter } from '../utils/colorConverter';
-import Tooltip from './Tooltip';
-import { contrast, isContrastSufficient } from '../utils/calculateContrast'; // Импортируем функции
+import { contrast, isContrastSufficient } from '../utils/calculateContrast';
 
 interface EyeDropperInfoProps {
   primaryColor: string | null;
@@ -58,6 +57,17 @@ const EyeDropperInfo: React.FC<EyeDropperInfoProps> = ({
     }
   }, [primaryColor, secondaryColor]);
 
+  const format = (value: number) => value.toFixed(2);
+
+  const formatXYZ = (xyz: any) =>
+    `X: ${format(xyz.x)}, Y: ${format(xyz.y)}, Z: ${format(xyz.z)}`;
+
+  const formatLab = (lab: any) =>
+    `L: ${format(lab.L)}, a: ${format(lab.a)}, b: ${format(lab.b)}`;
+
+  const formatOKLch = (oklch: any) =>
+    `L: ${format(oklch.L)}, C: ${format(oklch.C)}, h: ${format(oklch.h)}`;
+
   return (
     <div className="eyedropper-info">
       <div>
@@ -65,12 +75,13 @@ const EyeDropperInfo: React.FC<EyeDropperInfoProps> = ({
         <span className="color-swatch" style={{ background: primaryColor || '#fff' }}>
           {primaryColor || '—'}
         </span>
-        <span>Координаты: {primaryX} {primaryY}</span>
+        <p> Координата X: {primaryX} </p>
+        <p> Координата Y: {primaryY} </p>
         {primaryData && (
           <div className="color-info">
-            <Tooltip label={primaryData.XYZ} title="XYZ" />
-            <Tooltip label={primaryData.Lab} title="Lab" />
-            <Tooltip label={primaryData.OKLch} title="OKLch" />
+            <p>XYZ: {formatXYZ(primaryData.XYZ)}</p>
+            <p>Lab: {formatLab(primaryData.Lab)}</p>
+            <p>OKLch: {formatOKLch(primaryData.OKLch)}</p>
           </div>
         )}
       </div>
@@ -80,12 +91,13 @@ const EyeDropperInfo: React.FC<EyeDropperInfoProps> = ({
         <span className="color-swatch" style={{ background: secondaryColor || '#fff' }}>
           {secondaryColor || '—'}
         </span>
-        <span>Координаты: {secondaryX} {secondaryY}</span>
+        <p> Координата X: {secondaryX} </p>
+        <p> Координата Y: {secondaryY} </p>
         {secondaryData && (
           <div className="color-info">
-            <Tooltip label={secondaryData.XYZ} title="XYZ" />
-            <Tooltip label={secondaryData.Lab} title="Lab" />
-            <Tooltip label={secondaryData.OKLch} title="OKLch" />
+            <p>XYZ: {formatXYZ(secondaryData.XYZ)}</p>
+            <p>Lab: {formatLab(secondaryData.Lab)}</p>
+            <p>OKLch: {formatOKLch(secondaryData.OKLch)}</p>
           </div>
         )}
       </div>
