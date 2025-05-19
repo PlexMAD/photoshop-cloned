@@ -22,9 +22,33 @@ interface ImageInfo {
   colorDepth: string;
 }
 
+interface Layer {
+  id: 'first' | 'second';
+  imageData: ImageData | null;
+  info: ImageInfo | null;
+  blob: Blob | null;
+  opacity: number;
+  visible: boolean;
+  blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
+  alphaChannel: ImageData | null;
+  alphaVisible: boolean;
+}
+
 const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
-  const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
-  const [imageData, setImageData] = useState<ImageData | null>(null);
+  const [layers, setLayers] = useState<Layer[]>([
+    {
+      id: 'first',
+      imageData: null,
+      info: null,
+      blob: null,
+      opacity: 1,
+      visible: true,
+      blendMode: 'normal',
+      alphaChannel: null,
+      alphaVisible: true,
+    },
+  ]);
+  const [activeLayerId, setActiveLayerId] = useState<'first' | 'second' | null>('first');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [scalePercent, setScalePercent] = useState(100);
   const [activeTool, setActiveTool] = useState<Tool | null>(null);
@@ -34,8 +58,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [primaryY, setPrimaryY] = useState<number | null>(null);
   const [secondaryX, setSecondaryX] = useState<number | null>(null);
   const [secondaryY, setSecondaryY] = useState<number | null>(null);
-  const [secondImage, setSecondImage] = useState<Blob | null>(null);
-  const [secondLayerImageData, setSecondLayerImageData] = useState<ImageData | null>(null);
 
   // Рендеринг первого слоя
   useEffect(() => {
@@ -51,12 +73,24 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           ? await renderGB7(image)
           : await renderStandartImage(image);
 
-        setImageData(data);
-        setImageInfo({
-          width: data.width,
-          height: data.height,
-          colorDepth: getColorDepth(data, image.type),
-        });
+        setLayers([
+          {
+            id: 'first',
+            imageData: data,
+            info: {
+              width: data.width,
+              height: data.height,
+              colorDepth: getColorDepth(data, image.type),
+            },
+            blob: image,
+            opacity: 1,
+            visible: true,
+            blendMode: 'normal',
+            alphaChannel: null,
+            alphaVisible: true,
+          },
+        ]);
+        setActiveLayerId('first');
         setScalePercent(
           Math.min(
             100 / (data.height / (window.innerHeight - 100)),
@@ -65,100 +99,193 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
         );
       } catch (error) {
         console.error('Ошибка при отрисовке первого слоя:', error);
-        setImageInfo(null);
-        setImageData(null);
+        setLayers([]);
+        setActiveLayerId(null);
       }
     };
 
     render();
     return () => {
-      setImageInfo(null);
-      setImageData(null);
+      setLayers([]);
+      setActiveLayerId(null);
     };
   }, [image]);
 
-  // Рендеринг второго слоя
-  useEffect(() => {
-    const render = async () => {
-      if (!secondImage) {
-        setSecondLayerImageData(null);
-        return;
-      }
+  // Добавление второго слоя
+  const addLayer = async (file: Blob | null, color: string | null) => {
+    if (layers.length >= 2) return;
 
+    let imageData: ImageData | null = null;
+    let info: ImageInfo | null = null;
+    let blob: Blob | null = null;
+
+    if (file) {
       try {
         const isGB7 =
-          secondImage.type === 'application/gb7' ||
-          (secondImage instanceof File && secondImage.name.toLowerCase().endsWith('.gb7'));
+          file.type === 'application/gb7' ||
+          (file instanceof File && file.name.toLowerCase().endsWith('.gb7'));
 
-        const data = isGB7
-          ? await renderGB7(secondImage)
-          : await renderStandartImage(secondImage);
-
-        setSecondLayerImageData(data);
+        imageData = isGB7 ? await renderGB7(file) : await renderStandartImage(file);
+        info = {
+          width: imageData.width,
+          height: imageData.height,
+          colorDepth: getColorDepth(imageData, file.type),
+        };
+        blob = file;
       } catch (error) {
-        console.error('Ошибка при отрисовке второго слоя:', error);
-        setSecondLayerImageData(null);
+        console.error('Ошибка при добавлении слоя:', error);
+        return;
       }
+    } else if (color) {
+      const width = layers[0]?.info?.width || 100;
+      const height = layers[0]?.info?.height || 100;
+      imageData = new ImageData(width, height);
+      const [r, g, b] = color.match(/\d+/g)!.map(Number);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        imageData.data[i] = r;
+        imageData.data[i + 1] = g;
+        imageData.data[i + 2] = b;
+        imageData.data[i + 3] = 255;
+      }
+      info = { width, height, colorDepth: 'RGB' };
+      blob = new Blob([imageData.data], { type: 'image/png' });
+    }
+
+    const newLayer: Layer = {
+      id: 'second',
+      imageData,
+      info,
+      blob,
+      opacity: 1,
+      visible: true,
+      blendMode: 'normal',
+      alphaChannel: null,
+      alphaVisible: true,
     };
 
-    render();
-  }, [secondImage]);
+    setLayers([...layers, newLayer]);
+    setActiveLayerId('second');
+  };
 
+  // Изменение порядка слоёв
+  const reorderLayers = () => {
+    if (layers.length < 2) return;
+    setLayers([layers[1], layers[0]]);
+  };
+
+  // Переключение видимости слоя
+  const toggleLayerVisibility = (id: 'first' | 'second') => {
+    setLayers(
+      layers.map(layer =>
+        layer.id === id ? { ...layer, visible: !layer.visible } : layer
+      )
+    );
+  };
+
+  // Удаление слоя
+  const deleteLayer = (id: 'first' | 'second') => {
+    if (id === 'first') return; // Первый слой нельзя удалить
+    const newLayers = layers.filter(layer => layer.id !== id);
+    setLayers(newLayers);
+    setActiveLayerId(newLayers.length > 0 ? 'first' : null);
+  };
+
+  // Изменение непрозрачности
+  const setLayerOpacity = (id: 'first' | 'second', opacity: number) => {
+    setLayers(
+      layers.map(layer =>
+        layer.id === id ? { ...layer, opacity: opacity / 100 } : layer
+      )
+    );
+  };
+
+  // Изменение режима наложения
+  const setLayerBlendMode = (
+    id: 'first' | 'second',
+    blendMode: 'normal' | 'multiply' | 'screen' | 'overlay'
+  ) => {
+    setLayers(
+      layers.map(layer =>
+        layer.id === id ? { ...layer, blendMode } : layer
+      )
+    );
+  };
+
+  // Добавление альфа-канала
+  const addAlphaChannel = (layerId: 'first' | 'second', alphaData: ImageData) => {
+    setLayers(
+      layers.map(layer =>
+        layer.id === layerId ? { ...layer, alphaChannel: alphaData, alphaVisible: true } : layer
+      )
+    );
+  };
+
+  // Переключение видимости альфа-канала
+  const toggleAlphaChannelVisibility = (layerId: 'first' | 'second') => {
+    setLayers(
+      layers.map(layer =>
+        layer.id === layerId ? { ...layer, alphaVisible: !layer.alphaVisible } : layer
+      )
+    );
+  };
+
+  // Удаление альфа-канала
+  const deleteAlphaChannel = (layerId: 'first' | 'second') => {
+    setLayers(
+      layers.map(layer =>
+        layer.id === layerId ? { ...layer, alphaChannel: null, alphaVisible: true } : layer
+      )
+    );
+  };
+
+  // Изменение размера
   const handleResize = (options: ImageDataResizeOptions) => {
-    if (!imageData) return;
-    const resized = resizeImageData(imageData, options);
-    setImageData(resized);
-    setImageInfo({
-      width: resized.width,
-      height: resized.height,
-      colorDepth: imageInfo?.colorDepth || 'Unknown',
-    });
+    const activeLayer = layers.find(layer => layer.id === activeLayerId);
+    if (!activeLayer || !activeLayer.imageData) return;
+
+    const resized = resizeImageData(activeLayer.imageData, options);
+    setLayers(
+      layers.map(layer =>
+        layer.id === activeLayerId
+          ? {
+              ...layer,
+              imageData: resized,
+              info: {
+                width: resized.width,
+                height: resized.height,
+                colorDepth: layer.info?.colorDepth || 'Unknown',
+              },
+            }
+          : layer
+      )
+    );
   };
 
   const scale = scalePercent / 100;
 
+  const activeImageInfo =
+    layers.find(layer => layer.id === activeLayerId)?.info || null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <ToolPanel activeTool={activeTool} setActiveTool={setActiveTool} />
-
-      {imageData && (
-        <CanvasRenderer
-          imageData={imageData}
-          scale={scale}
-          activeTool={activeTool}
-          onColorPick={(color, isSecondary, x, y) => {
-            if (isSecondary) {
-              setSecondaryColor(color);
-              setSecondaryX(x);
-              setSecondaryY(y);
-            } else {
-              setPrimaryColor(color);
-              setPrimaryX(x);
-              setPrimaryY(y);
-            }
-          }}
-        />
-      )}
-
-      {secondLayerImageData && (
-        <CanvasRenderer
-          imageData={secondLayerImageData}
-          scale={scale}
-          activeTool={activeTool}
-          onColorPick={(color, isSecondary, x, y) => {
-            if (isSecondary) {
-              setSecondaryColor(color);
-              setSecondaryX(x);
-              setSecondaryY(y);
-            } else {
-              setPrimaryColor(color);
-              setPrimaryX(x);
-              setPrimaryY(y);
-            }
-          }}
-        />
-      )}
-
+      <CanvasRenderer
+        layers={layers}
+        scale={scale}
+        activeTool={activeTool}
+        activeLayerId={activeLayerId}
+        onColorPick={(color, isSecondary, x, y) => {
+          if (isSecondary) {
+            setSecondaryColor(color);
+            setSecondaryX(x);
+            setSecondaryY(y);
+          } else {
+            setPrimaryColor(color);
+            setPrimaryX(x);
+            setPrimaryY(y);
+          }
+        }}
+      />
       {activeTool === 'eyedropper' && (
         <EyeDropperInfo
           primaryColor={primaryColor}
@@ -170,35 +297,46 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
         />
       )}
       <div className="canvas-background"></div>
-      {imageInfo && (
+      {activeImageInfo && (
         <>
           <StatusBar
-            width={imageInfo.width}
-            height={imageInfo.height}
-            colorDepth={imageInfo.colorDepth}
+            width={activeImageInfo.width}
+            height={activeImageInfo.height}
+            colorDepth={activeImageInfo.colorDepth}
           />
           <div className="image-manipulators">
             <ScaleSelector scalePercent={scalePercent} onChange={setScalePercent} />
-            <Button onClick={() => setIsModalVisible(true)}>
+            <Button
+              onClick={() => setIsModalVisible(true)}
+              disabled={!activeLayerId || !activeImageInfo}
+            >
               Изменить размер изображения
             </Button>
           </div>
         </>
       )}
-
-      {imageInfo && (
+      {activeImageInfo && (
         <ImageResizerModal
           visible={isModalVisible}
           onClose={() => setIsModalVisible(false)}
           onResize={handleResize}
-          originalWidth={imageInfo.width}
-          originalHeight={imageInfo.height}
+          originalWidth={activeImageInfo.width}
+          originalHeight={activeImageInfo.height}
         />
       )}
       <LayerSelector
-        image={image}
-        secondImage={secondImage}
-        setSecondImage={setSecondImage}
+        layers={layers}
+        activeLayerId={activeLayerId}
+        setActiveLayerId={setActiveLayerId}
+        addLayer={addLayer}
+        reorderLayers={reorderLayers}
+        toggleLayerVisibility={toggleLayerVisibility}
+        deleteLayer={deleteLayer}
+        setLayerOpacity={setLayerOpacity}
+        setLayerBlendMode={setLayerBlendMode}
+        addAlphaChannel={addAlphaChannel}
+        toggleAlphaChannelVisibility={toggleAlphaChannelVisibility}
+        deleteAlphaChannel={deleteAlphaChannel}
       />
     </div>
   );

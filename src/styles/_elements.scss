@@ -158,18 +158,18 @@ canvas {
 .layer-selector {
   position: fixed;
   display: flex;
-  width: 300px;
-  height: 300px;
+  width: 350px;
+  height: 800px;
   border: solid 1px black;
   background-color: white;
-  right: -270px;
+  right: -300px;
   bottom: 100px;
-  transition: 1s;
+  transition: right 1s ease-in-out;
 
   &__button {
     border-top-left-radius: 5%;
     border-bottom-left-radius: 5%;
-    height: 300px;
+    height: 800px;
     background-color: grey;
     color: white;
     width: 30px;
@@ -179,6 +179,10 @@ canvas {
     align-items: center;
     justify-content: center;
     font-size: 16px;
+
+    &:hover {
+      background-color: #555;
+    }
   }
 
   &__content {
@@ -186,14 +190,41 @@ canvas {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     overflow-y: auto;
+  }
+
+  &__add {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__layers {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
   }
 
   &__item {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    background-color: #fff;
+
+    &--active {
+      background-color: #e6f0ff;
+      border: 2px solid #1890ff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    &:hover {
+      background-color: #f8f8f8;
+    }
   }
 
   &__title {
@@ -201,6 +232,7 @@ canvas {
     font-weight: 500;
     margin-bottom: 10px;
     text-align: center;
+    color: #333;
   }
 
   &__preview {
@@ -209,6 +241,7 @@ canvas {
     object-fit: contain;
     border: 1px solid #ddd;
     border-radius: 4px;
+    margin-bottom: 8px;
   }
 
   &__placeholder {
@@ -223,6 +256,36 @@ canvas {
     font-size: 12px;
     color: #666;
     text-align: center;
+    margin-bottom: 8px;
+  }
+
+  &__file-input {
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+
+    &::file-selector-button {
+      padding: 5px 10px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background: #e0e0e0;
+      }
+    }
+  }
+
+  &__alpha {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 }
 
