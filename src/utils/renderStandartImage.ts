@@ -1,5 +1,5 @@
 
-export async function renderStandardImage(blob: Blob): Promise<ImageData> {
+export async function renderStandartImage(blob: Blob): Promise<ImageData> {
   const imageUrl = URL.createObjectURL(blob);
   const img = new Image();
 

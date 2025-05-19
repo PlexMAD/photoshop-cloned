@@ -20,7 +20,7 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 
-  const resizedImageData = useMemo(() => {
+  const rescaledImageData = useMemo(() => {
     return resizeImageData(imageData, {
       width: Math.max(1, Math.round(imageData.width * scale)),
       height: Math.max(1, Math.round(imageData.height * scale)),
@@ -54,8 +54,8 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const scaledWidth = resizedImageData.width;
-    const scaledHeight = resizedImageData.height;
+    const scaledWidth = rescaledImageData.width;
+    const scaledHeight = rescaledImageData.height;
 
     const tmpCanvas = document.createElement('canvas');
     tmpCanvas.width = scaledWidth;
@@ -63,14 +63,14 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
     const tmpCtx = tmpCanvas.getContext('2d');
     if (!tmpCtx) return;
 
-    tmpCtx.putImageData(resizedImageData, 0, 0);
+    tmpCtx.putImageData(rescaledImageData, 0, 0);
 
     ctx.drawImage(tmpCanvas, offset.x, offset.y);
 
     return () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [resizedImageData, canvasSize, offset]);
+  }, [rescaledImageData, canvasSize, offset]);
 
   useEffect(() => {
     if (offset.x !== 0 && offset.y !== 0) return;
