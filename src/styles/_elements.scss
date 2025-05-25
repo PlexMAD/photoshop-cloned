@@ -159,14 +159,12 @@ canvas {
   position: fixed;
   display: flex;
   width: 350px;
-  height: 800px;
+  height: 93vh;
   border: solid 1px black;
   background-color: white;
   right: -300px;
   bottom: 0px;
   transition: right 1s ease-in-out;
-  overflow: scroll;
-
   &__button {
     border-top-left-radius: 5%;
     border-bottom-left-radius: 5%;
