@@ -163,8 +163,9 @@ canvas {
   border: solid 1px black;
   background-color: white;
   right: -300px;
-  bottom: 100px;
+  bottom: 0px;
   transition: right 1s ease-in-out;
+  overflow: scroll;
 
   &__button {
     border-top-left-radius: 5%;

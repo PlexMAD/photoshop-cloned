@@ -1,7 +1,5 @@
 import React, { FC, useState, useEffect } from 'react';
 import { Button, Switch, Select, Tooltip, Input } from 'antd';
-import { renderStandartImage } from '../utils/renderStandartImage';
-import { renderGB7 } from '../utils/renderGB7';
 import { createPreviewUrl } from '../utils/createPreviewUrl';
 
 const { Option } = Select;
@@ -9,13 +7,12 @@ const { Option } = Select;
 interface Layer {
   id: 'first' | 'second';
   imageData: ImageData | null;
-  info: { width: number; height: number; colorDepth: string } | null;
+  info: { width: number; height: number; colorDepth: string; hasAlpha: boolean } | null;
   blob: Blob | null;
   opacity: number;
   visible: boolean;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
-  alphaChannel: ImageData | null;
-  alphaVisible: boolean;
+  showAlphaOnly: boolean; // Добавлено
 }
 
 interface LayerSelectorProps {
@@ -31,9 +28,7 @@ interface LayerSelectorProps {
     id: 'first' | 'second',
     blendMode: 'normal' | 'multiply' | 'screen' | 'overlay'
   ) => void;
-  addAlphaChannel: (layerId: 'first' | 'second', alphaData: ImageData) => void;
-  toggleAlphaChannelVisibility: (layerId: 'first' | 'second') => void;
-  deleteAlphaChannel: (layerId: 'first' | 'second') => void;
+  toggleAlphaOnly: (id: 'first' | 'second') => void; // Добавлено
 }
 
 const LayerSelector: FC<LayerSelectorProps> = ({
@@ -46,20 +41,16 @@ const LayerSelector: FC<LayerSelectorProps> = ({
   deleteLayer,
   setLayerOpacity,
   setLayerBlendMode,
-  addAlphaChannel,
-  toggleAlphaChannelVisibility,
-  deleteAlphaChannel,
+  toggleAlphaOnly,
 }) => {
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [previews, setPreviews] = useState<{ [key: string]: string | null }>({});
-  const [alphaPreviews, setAlphaPreviews] = useState<{ [key: string]: string | null }>({});
   const [color, setColor] = useState<string>('rgb(255, 255, 255)');
 
   // Рендеринг превью
   useEffect(() => {
     const renderPreviews = async () => {
       const newPreviews: { [key: string]: string | null } = {};
-      const newAlphaPreviews: { [key: string]: string | null } = {};
 
       for (const layer of layers) {
         if (layer.imageData) {
@@ -72,60 +63,19 @@ const LayerSelector: FC<LayerSelectorProps> = ({
         } else {
           newPreviews[layer.id] = null;
         }
-
-        if (layer.alphaChannel) {
-          try {
-            newAlphaPreviews[layer.id] = createPreviewUrl(layer.alphaChannel);
-          } catch (error) {
-            console.error(`Ошибка при рендеринге превью альфа-канала ${layer.id}:`, error);
-            newAlphaPreviews[layer.id] = null;
-          }
-        } else {
-          newAlphaPreviews[layer.id] = null;
-        }
       }
 
       setPreviews(newPreviews);
-      setAlphaPreviews(newAlphaPreviews);
     };
 
     renderPreviews();
   }, [layers]);
 
   // Обработка загрузки файла
-  const handleFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    isAlpha: boolean,
-    layerId: 'first' | 'second'
-  ) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const render = async () => {
-      try {
-        const isGB7 =
-          file.type === '.gb7' ||
-          (file instanceof File && file.name.toLowerCase().endsWith('.gb7'));
-
-        const data = isGB7 ? await renderGB7(file) : await renderStandartImage(file);
-
-        if (isAlpha) {
-          const alphaData = new ImageData(data.width, data.height);
-          for (let i = 0; i < data.data.length; i += 4) {
-            const gray = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
-            alphaData.data[i] = alphaData.data[i + 1] = alphaData.data[i + 2] = 255;
-            alphaData.data[i + 3] = gray;
-          }
-          addAlphaChannel(layerId, alphaData);
-        } else {
-          addLayer(file, null);
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке файла:', error);
-      }
-    };
-
-    render();
+    addLayer(file, null);
   };
 
   // Добавление цветного слоя
@@ -172,7 +122,7 @@ const LayerSelector: FC<LayerSelectorProps> = ({
               type="file"
               accept="image/*, .gb7"
               className="layer-selector__file-input"
-              onChange={e => handleFileChange(e, false, 'second')}
+              onChange={handleFileChange}
             />
             <Input
               type="text"
@@ -205,6 +155,20 @@ const LayerSelector: FC<LayerSelectorProps> = ({
                 />
               ) : (
                 <div className="layer-selector__placeholder">Нет изображения</div>
+              )}
+              <div style={{ marginTop: 8 }}>
+                Альфа-канал: {layer.info?.hasAlpha ? 'Есть' : 'Нет'}
+              </div>
+              {layer.info?.hasAlpha && (
+                <div style={{ marginTop: 8 }}>
+                  <Switch
+                    checked={layer.showAlphaOnly}
+                    onChange={() => toggleAlphaOnly(layer.id)}
+                    size="small"
+                    disabled={!layer.visible}
+                  />
+                  <span style={{ marginLeft: 8 }}>Показать только альфа-канал</span>
+                </div>
               )}
               <Switch
                 checked={layer.visible}
@@ -270,44 +234,6 @@ const LayerSelector: FC<LayerSelectorProps> = ({
                   <Option value="overlay">Наложение</Option>
                 </Select>
               </Tooltip>
-              <div className="layer-selector__alpha">
-                <div className="layer-selector__title">Альфа-канал</div>
-                {alphaPreviews[layer.id] ? (
-                  <img
-                    src={alphaPreviews[layer.id]!}
-                    alt={`Превью альфа-канала ${layer.id}`}
-                    className="layer-selector__preview"
-                  />
-                ) : (
-                  <div className="layer-selector__placeholder">Нет альфа-канала</div>
-                )}
-                {layer.alphaChannel ? (
-                  <>
-                    <Switch
-                      checked={layer.alphaVisible}
-                      onChange={() => toggleAlphaChannelVisibility(layer.id)}
-                      size="small"
-                      style={{ marginTop: 8 }}
-                    />
-                    <Button
-                      danger
-                      size="small"
-                      onClick={() => deleteAlphaChannel(layer.id)}
-                      style={{ marginTop: 8 }}
-                    >
-                      Удалить
-                    </Button>
-                  </>
-                ) : (
-                  <input
-                    type="file"
-                    accept="image/*, .gb7"
-                    className="layer-selector__file-input"
-                    onChange={e => handleFileChange(e, true, layer.id)}
-                    style={{ marginTop: 8 }}
-                  />
-                )}
-              </div>
             </div>
           ))}
           {layers.length === 2 && (

@@ -20,6 +20,7 @@ interface ImageInfo {
   width: number;
   height: number;
   colorDepth: string;
+  hasAlpha: boolean;
 }
 
 interface Layer {
@@ -30,8 +31,7 @@ interface Layer {
   opacity: number;
   visible: boolean;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
-  alphaChannel: ImageData | null;
-  alphaVisible: boolean;
+  showAlphaOnly: boolean; // Добавлено
 }
 
 const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
@@ -44,8 +44,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
       opacity: 1,
       visible: true,
       blendMode: 'normal',
-      alphaChannel: null,
-      alphaVisible: true,
+      showAlphaOnly: false, // Добавлено
     },
   ]);
   const [activeLayerId, setActiveLayerId] = useState<'first' | 'second' | null>('first');
@@ -73,6 +72,15 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           ? await renderGB7(image)
           : await renderStandartImage(image);
 
+        // Проверка наличия альфа-канала
+        let hasAlpha = false;
+        for (let i = 3; i < data.data.length; i += 4) {
+          if (data.data[i] < 255) {
+            hasAlpha = true;
+            break;
+          }
+        }
+
         setLayers([
           {
             id: 'first',
@@ -81,13 +89,13 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
               width: data.width,
               height: data.height,
               colorDepth: getColorDepth(data, image.type),
+              hasAlpha,
             },
             blob: image,
             opacity: 1,
             visible: true,
             blendMode: 'normal',
-            alphaChannel: null,
-            alphaVisible: true,
+            showAlphaOnly: false, // Добавлено
           },
         ]);
         setActiveLayerId('first');
@@ -125,11 +133,21 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           file.type === 'application/gb7' ||
           (file instanceof File && file.name.toLowerCase().endsWith('.gb7'));
 
-        imageData = isGB7 ? await renderGB7(file) : await renderStandartImage(file);
+        const data = isGB7 ? await renderGB7(file) : await renderStandartImage(file);
+        let hasAlpha = false;
+        for (let i = 3; i < data.data.length; i += 4) {
+          if (data.data[i] < 255) {
+            hasAlpha = true;
+            break;
+          }
+        }
+
+        imageData = data;
         info = {
           width: imageData.width,
           height: imageData.height,
           colorDepth: getColorDepth(imageData, file.type),
+          hasAlpha,
         };
         blob = file;
       } catch (error) {
@@ -145,9 +163,9 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
         imageData.data[i] = r;
         imageData.data[i + 1] = g;
         imageData.data[i + 2] = b;
-        imageData.data[i + 3] = 255;
+        imageData.data[i + 3] = 255; // Без прозрачности
       }
-      info = { width, height, colorDepth: 'RGB' };
+      info = { width, height, colorDepth: 'RGB', hasAlpha: false };
       blob = new Blob([imageData.data], { type: 'image/png' });
     }
 
@@ -159,8 +177,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
       opacity: 1,
       visible: true,
       blendMode: 'normal',
-      alphaChannel: null,
-      alphaVisible: true,
+      showAlphaOnly: false, // Добавлено
     };
 
     setLayers([...layers, newLayer]);
@@ -177,7 +194,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const toggleLayerVisibility = (id: 'first' | 'second') => {
     setLayers(
       layers.map(layer =>
-        layer.id === id ? { ...layer, visible: !layer.visible } : layer
+        layer.id === id ? { ...layer, visible: !layer.visible, showAlphaOnly: layer.visible ? layer.showAlphaOnly : false } : layer
       )
     );
   };
@@ -211,29 +228,11 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     );
   };
 
-  // Добавление альфа-канала
-  const addAlphaChannel = (layerId: 'first' | 'second', alphaData: ImageData) => {
+  // Переключение отображения только альфа-канала
+  const toggleAlphaOnly = (id: 'first' | 'second') => {
     setLayers(
       layers.map(layer =>
-        layer.id === layerId ? { ...layer, alphaChannel: alphaData, alphaVisible: true } : layer
-      )
-    );
-  };
-
-  // Переключение видимости альфа-канала
-  const toggleAlphaChannelVisibility = (layerId: 'first' | 'second') => {
-    setLayers(
-      layers.map(layer =>
-        layer.id === layerId ? { ...layer, alphaVisible: !layer.alphaVisible } : layer
-      )
-    );
-  };
-
-  // Удаление альфа-канала
-  const deleteAlphaChannel = (layerId: 'first' | 'second') => {
-    setLayers(
-      layers.map(layer =>
-        layer.id === layerId ? { ...layer, alphaChannel: null, alphaVisible: true } : layer
+        layer.id === id ? { ...layer, showAlphaOnly: !layer.showAlphaOnly } : layer
       )
     );
   };
@@ -244,6 +243,14 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     if (!activeLayer || !activeLayer.imageData) return;
 
     const resized = resizeImageData(activeLayer.imageData, options);
+    let hasAlpha = false;
+    for (let i = 3; i < resized.data.length; i += 4) {
+      if (resized.data[i] < 255) {
+        hasAlpha = true;
+        break;
+      }
+    }
+
     setLayers(
       layers.map(layer =>
         layer.id === activeLayerId
@@ -254,7 +261,9 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
                 width: resized.width,
                 height: resized.height,
                 colorDepth: layer.info?.colorDepth || 'Unknown',
+                hasAlpha,
               },
+              showAlphaOnly: hasAlpha ? layer.showAlphaOnly : false, // Сбрасываем, если нет альфа-канала
             }
           : layer
       )
@@ -334,9 +343,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
         deleteLayer={deleteLayer}
         setLayerOpacity={setLayerOpacity}
         setLayerBlendMode={setLayerBlendMode}
-        addAlphaChannel={addAlphaChannel}
-        toggleAlphaChannelVisibility={toggleAlphaChannelVisibility}
-        deleteAlphaChannel={deleteAlphaChannel}
+        toggleAlphaOnly={toggleAlphaOnly} // Добавлено
       />
     </div>
   );

@@ -5,13 +5,12 @@ import { resizeImageData } from '../utils/imageResize';
 interface Layer {
   id: 'first' | 'second';
   imageData: ImageData | null;
-  info: { width: number; height: number; colorDepth: string } | null;
+  info: { width: number; height: number; colorDepth: string; hasAlpha: boolean } | null;
   blob: Blob | null;
   opacity: number;
   visible: boolean;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
-  alphaChannel: ImageData | null;
-  alphaVisible: boolean;
+  showAlphaOnly: boolean; // Добавлено
 }
 
 interface CanvasRendererProps {
@@ -34,23 +33,34 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 
-  // Масштабирование слоёв и альфа-каналов
+  // Масштабирование слоёв
   const rescaledLayers = useMemo(() => {
     return layers.map(layer => {
-      if (!layer.imageData || !layer.visible) return { image: null, alpha: null };
+      if (!layer.imageData || !layer.visible) return { image: null };
       const image = resizeImageData(layer.imageData, {
         width: Math.max(1, Math.round(layer.imageData.width * scale)),
         height: Math.max(1, Math.round(layer.imageData.height * scale)),
         algorithm: 'bilinear',
       });
-      const alpha = layer.alphaChannel && layer.alphaVisible
-        ? resizeImageData(layer.alphaChannel, {
-            width: Math.max(1, Math.round(layer.imageData.width * scale)),
-            height: Math.max(1, Math.round(layer.imageData.height * scale)),
-            algorithm: 'bilinear',
-          })
-        : null;
-      return { image, alpha };
+
+      // Если showAlphaOnly, создаём изображение с чёрными альфа-пикселями
+      if (layer.showAlphaOnly && layer.info?.hasAlpha) {
+        const alphaImage = new ImageData(image.width, image.height);
+        for (let i = 0; i < image.data.length; i += 4) {
+          const alpha = image.data[i + 3];
+          if (alpha < 255) {
+            alphaImage.data[i] = 0; // R
+            alphaImage.data[i + 1] = 0; // G
+            alphaImage.data[i + 2] = 0; // B
+            alphaImage.data[i + 3] = 255 - alpha; // Инвертируем альфа для видимости
+          } else {
+            alphaImage.data[i + 3] = 0; // Прозрачно для непрозрачных пикселей
+          }
+        }
+        return { image: alphaImage };
+      }
+
+      return { image };
     });
   }, [layers, scale]);
 
@@ -92,19 +102,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
       if (!tmpCtx) return;
 
       tmpCtx.putImageData(rescaledLayers[index]!.image!, 0, 0);
-
-      // Применение альфа-канала
-      if (layer.alphaChannel && layer.alphaVisible && rescaledLayers[index]?.alpha) {
-        const alphaCanvas = document.createElement('canvas');
-        alphaCanvas.width = tmpCanvas.width;
-        alphaCanvas.height = tmpCanvas.height;
-        const alphaCtx = alphaCanvas.getContext('2d');
-        if (alphaCtx) {
-          alphaCtx.putImageData(rescaledLayers[index]!.alpha!, 0, 0);
-          tmpCtx.globalCompositeOperation = 'destination-in';
-          tmpCtx.drawImage(alphaCanvas, 0, 0);
-        }
-      }
 
       ctx.save();
       ctx.globalAlpha = layer.opacity;
@@ -164,13 +161,14 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
       }
 
       const index = (y * activeLayer.imageData.width + x) * 4;
-      const [r, g, b] = [
+      const [r, g, b, a] = [
         activeLayer.imageData.data[index],
         activeLayer.imageData.data[index + 1],
         activeLayer.imageData.data[index + 2],
+        activeLayer.imageData.data[index + 3],
       ];
 
-      const color = `rgb(${r}, ${g}, ${b})`;
+      const color = a < 255 ? `rgba(${r}, ${g}, ${b}, ${a / 255})` : `rgb(${r}, ${g}, ${b})`;
       const isSecondary = e.altKey || e.ctrlKey || e.shiftKey;
 
       onColorPick?.(color, isSecondary, x, y);
