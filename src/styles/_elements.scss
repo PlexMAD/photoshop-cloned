@@ -291,3 +291,56 @@ canvas {
 .layers-visible {
   right: 0px;
 }
+
+.ant-modal {
+  &.curves-modal {
+    width: clamp(400px, 40vw, 500px) !important;
+
+    .ant-modal-content {
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .ant-modal-header {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.5rem;
+    }
+
+    .ant-modal-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .ant-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .ant-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #ddd;
+    }
+
+    .ant-input-number {
+      width: 80px;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    svg {
+      align-self: center;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  }
+}

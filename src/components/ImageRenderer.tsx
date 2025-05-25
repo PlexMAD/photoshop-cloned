@@ -11,6 +11,7 @@ import ScaleSelector from './ScaleSelector';
 import ToolPanel, { Tool } from './ToolPanel';
 import EyeDropperInfo from './EyeDropperInfo';
 import LayerSelector from './LayerSelector';
+import CurvesModal from './CurvesModal';
 
 interface ImageRendererProps {
   image: Blob;
@@ -31,7 +32,7 @@ interface Layer {
   opacity: number;
   visible: boolean;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
-  showAlphaOnly: boolean; // Добавлено
+  showAlphaOnly: boolean;
 }
 
 const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
@@ -44,11 +45,12 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
       opacity: 1,
       visible: true,
       blendMode: 'normal',
-      showAlphaOnly: false, // Добавлено
+      showAlphaOnly: false,
     },
   ]);
   const [activeLayerId, setActiveLayerId] = useState<'first' | 'second' | null>('first');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isCurvesModalVisible, setIsCurvesModalVisible] = useState(false);
   const [scalePercent, setScalePercent] = useState(100);
   const [activeTool, setActiveTool] = useState<Tool | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string | null>(null);
@@ -58,7 +60,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [secondaryX, setSecondaryX] = useState<number | null>(null);
   const [secondaryY, setSecondaryY] = useState<number | null>(null);
 
-  // Рендеринг первого слоя
   useEffect(() => {
     const render = async () => {
       if (!image) return;
@@ -72,7 +73,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           ? await renderGB7(image)
           : await renderStandartImage(image);
 
-        // Проверка наличия альфа-канала
         let hasAlpha = false;
         for (let i = 3; i < data.data.length; i += 4) {
           if (data.data[i] < 255) {
@@ -95,7 +95,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
             opacity: 1,
             visible: true,
             blendMode: 'normal',
-            showAlphaOnly: false, // Добавлено
+            showAlphaOnly: false,
           },
         ]);
         setActiveLayerId('first');
@@ -119,7 +119,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     };
   }, [image]);
 
-  // Добавление второго слоя
   const addLayer = async (file: Blob | null, color: string | null) => {
     if (layers.length >= 2) return;
 
@@ -163,7 +162,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
         imageData.data[i] = r;
         imageData.data[i + 1] = g;
         imageData.data[i + 2] = b;
-        imageData.data[i + 3] = 255; // Без прозрачности
+        imageData.data[i + 3] = 255;
       }
       info = { width, height, colorDepth: 'RGB', hasAlpha: false };
       blob = new Blob([imageData.data], { type: 'image/png' });
@@ -177,20 +176,18 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
       opacity: 1,
       visible: true,
       blendMode: 'normal',
-      showAlphaOnly: false, // Добавлено
+      showAlphaOnly: false,
     };
 
     setLayers([...layers, newLayer]);
     setActiveLayerId('second');
   };
 
-  // Изменение порядка слоёв
   const reorderLayers = () => {
     if (layers.length < 2) return;
     setLayers([layers[1], layers[0]]);
   };
 
-  // Переключение видимости слоя
   const toggleLayerVisibility = (id: 'first' | 'second') => {
     setLayers(
       layers.map(layer =>
@@ -199,15 +196,13 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     );
   };
 
-  // Удаление слоя
   const deleteLayer = (id: 'first' | 'second') => {
-    if (id === 'first') return; // Первый слой нельзя удалить
+    if (id === 'first') return;
     const newLayers = layers.filter(layer => layer.id !== id);
     setLayers(newLayers);
     setActiveLayerId(newLayers.length > 0 ? 'first' : null);
   };
 
-  // Изменение непрозрачности
   const setLayerOpacity = (id: 'first' | 'second', opacity: number) => {
     setLayers(
       layers.map(layer =>
@@ -216,7 +211,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     );
   };
 
-  // Изменение режима наложения
   const setLayerBlendMode = (
     id: 'first' | 'second',
     blendMode: 'normal' | 'multiply' | 'screen' | 'overlay'
@@ -228,7 +222,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     );
   };
 
-  // Переключение отображения только альфа-канала
   const toggleAlphaOnly = (id: 'first' | 'second') => {
     setLayers(
       layers.map(layer =>
@@ -237,7 +230,6 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     );
   };
 
-  // Изменение размера
   const handleResize = (options: ImageDataResizeOptions) => {
     const activeLayer = layers.find(layer => layer.id === activeLayerId);
     if (!activeLayer || !activeLayer.imageData) return;
@@ -263,17 +255,43 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
                 colorDepth: layer.info?.colorDepth || 'Unknown',
                 hasAlpha,
               },
-              showAlphaOnly: hasAlpha ? layer.showAlphaOnly : false, // Сбрасываем, если нет альфа-канала
+              showAlphaOnly: hasAlpha ? layer.showAlphaOnly : false,
             }
           : layer
       )
     );
   };
 
-  const scale = scalePercent / 100;
+  const applyCurves = (lut: number[], applyToAlpha: boolean) => {
+    const activeLayer = layers.find(layer => layer.id === activeLayerId);
+    if (!activeLayer || !activeLayer.imageData) return;
 
-  const activeImageInfo =
-    layers.find(layer => layer.id === activeLayerId)?.info || null;
+    const newImageData = new ImageData(
+      new Uint8ClampedArray(activeLayer.imageData.data),
+      activeLayer.imageData.width,
+      activeLayer.imageData.height
+    );
+
+    for (let i = 0; i < newImageData.data.length; i += 4) {
+      if (applyToAlpha) {
+        newImageData.data[i + 3] = lut[newImageData.data[i + 3]];
+      } else {
+        newImageData.data[i] = lut[newImageData.data[i]];
+        newImageData.data[i + 1] = lut[newImageData.data[i + 1]];
+        newImageData.data[i + 2] = lut[newImageData.data[i + 2]];
+      }
+    }
+
+    setLayers(
+      layers.map(layer =>
+        layer.id === activeLayerId ? { ...layer, imageData: newImageData } : layer
+      )
+    );
+  };
+
+  const scale = scalePercent / 100;
+  const activeImageInfo = layers.find(layer => layer.id === activeLayerId)?.info || null;
+  const activeLayer = layers.find(layer => layer.id === activeLayerId);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -321,6 +339,12 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
             >
               Изменить размер изображения
             </Button>
+            <Button
+              onClick={() => setIsCurvesModalVisible(true)}
+              disabled={!activeLayerId || !activeImageInfo}
+            >
+              Кривые
+            </Button>
           </div>
         </>
       )}
@@ -333,6 +357,15 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           originalHeight={activeImageInfo.height}
         />
       )}
+      {activeImageInfo && (
+        <CurvesModal
+          visible={isCurvesModalVisible}
+          onClose={() => setIsCurvesModalVisible(false)}
+          onApply={applyCurves}
+          imageData={activeLayer?.imageData || null}
+          showAlphaOnly={activeLayer?.showAlphaOnly || false}
+        />
+      )}
       <LayerSelector
         layers={layers}
         activeLayerId={activeLayerId}
@@ -343,7 +376,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
         deleteLayer={deleteLayer}
         setLayerOpacity={setLayerOpacity}
         setLayerBlendMode={setLayerBlendMode}
-        toggleAlphaOnly={toggleAlphaOnly} // Добавлено
+        toggleAlphaOnly={toggleAlphaOnly}
       />
     </div>
   );

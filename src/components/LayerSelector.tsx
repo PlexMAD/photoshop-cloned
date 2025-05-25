@@ -12,7 +12,7 @@ interface Layer {
   opacity: number;
   visible: boolean;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
-  showAlphaOnly: boolean; // Добавлено
+  showAlphaOnly: boolean;
 }
 
 interface LayerSelectorProps {
@@ -28,7 +28,7 @@ interface LayerSelectorProps {
     id: 'first' | 'second',
     blendMode: 'normal' | 'multiply' | 'screen' | 'overlay'
   ) => void;
-  toggleAlphaOnly: (id: 'first' | 'second') => void; // Добавлено
+  toggleAlphaOnly: (id: 'first' | 'second') => void;
 }
 
 const LayerSelector: FC<LayerSelectorProps> = ({
@@ -47,7 +47,6 @@ const LayerSelector: FC<LayerSelectorProps> = ({
   const [previews, setPreviews] = useState<{ [key: string]: string | null }>({});
   const [color, setColor] = useState<string>('rgb(255, 255, 255)');
 
-  // Рендеринг превью
   useEffect(() => {
     const renderPreviews = async () => {
       const newPreviews: { [key: string]: string | null } = {};
@@ -71,19 +70,16 @@ const LayerSelector: FC<LayerSelectorProps> = ({
     renderPreviews();
   }, [layers]);
 
-  // Обработка загрузки файла
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     addLayer(file, null);
   };
 
-  // Добавление цветного слоя
   const handleColorLayer = () => {
     addLayer(null, color);
   };
 
-  // Изменение прозрачности через ввод
   const handleOpacityChange = (layerId: 'first' | 'second', value: string) => {
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue)) {
@@ -91,7 +87,6 @@ const LayerSelector: FC<LayerSelectorProps> = ({
     }
   };
 
-  // Увеличение прозрачности на 1
   const increaseOpacity = (layerId: 'first' | 'second') => {
     const layer = layers.find(l => l.id === layerId);
     if (layer && layer.opacity * 100 < 100) {
@@ -99,7 +94,6 @@ const LayerSelector: FC<LayerSelectorProps> = ({
     }
   };
 
-  // Уменьшение прозрачности на 1
   const decreaseOpacity = (layerId: 'first' | 'second') => {
     const layer = layers.find(l => l.id === layerId);
     if (layer && layer.opacity * 100 > 0) {

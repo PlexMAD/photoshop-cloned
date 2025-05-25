@@ -10,7 +10,7 @@ interface Layer {
   opacity: number;
   visible: boolean;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
-  showAlphaOnly: boolean; // Добавлено
+  showAlphaOnly: boolean;
 }
 
 interface CanvasRendererProps {
@@ -33,7 +33,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 
-  // Масштабирование слоёв
   const rescaledLayers = useMemo(() => {
     return layers.map(layer => {
       if (!layer.imageData || !layer.visible) return { image: null };
@@ -43,18 +42,17 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
         algorithm: 'bilinear',
       });
 
-      // Если showAlphaOnly, создаём изображение с чёрными альфа-пикселями
       if (layer.showAlphaOnly && layer.info?.hasAlpha) {
         const alphaImage = new ImageData(image.width, image.height);
         for (let i = 0; i < image.data.length; i += 4) {
           const alpha = image.data[i + 3];
           if (alpha < 255) {
-            alphaImage.data[i] = 0; // R
-            alphaImage.data[i + 1] = 0; // G
-            alphaImage.data[i + 2] = 0; // B
-            alphaImage.data[i + 3] = 255 - alpha; // Инвертируем альфа для видимости
+            alphaImage.data[i] = 0;
+            alphaImage.data[i + 1] = 0;
+            alphaImage.data[i + 2] = 0;
+            alphaImage.data[i + 3] = 255 - alpha;
           } else {
-            alphaImage.data[i + 3] = 0; // Прозрачно для непрозрачных пикселей
+            alphaImage.data[i + 3] = 0;
           }
         }
         return { image: alphaImage };
@@ -64,7 +62,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
     });
   }, [layers, scale]);
 
-  // Обновление размеров канваса
   useEffect(() => {
     const updateCanvasSize = () => {
       const padding = 50;
@@ -79,7 +76,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
     return () => window.removeEventListener('resize', updateCanvasSize);
   }, []);
 
-  // Рендеринг слоёв
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) return;
@@ -115,7 +111,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
     };
   }, [layers, rescaledLayers, canvasSize, offset]);
 
-  // Центрирование
   useEffect(() => {
     if (offset.x !== 0 && offset.y !== 0) return;
     if (!canvasSize.width || !canvasSize.height) return;
@@ -135,7 +130,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
     setOffset({ x: centerX, y: centerY });
   }, [canvasSize, layers, scale]);
 
-  // Обработка клика для пипетки
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -178,7 +172,6 @@ const CanvasRenderer: FC<CanvasRendererProps> = ({
     return () => canvas.removeEventListener('click', handleClick);
   }, [layers, activeLayerId, activeTool, onColorPick, offset, scale]);
 
-  // Обработка перетаскивания (hand tool)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
