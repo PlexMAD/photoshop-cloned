@@ -12,7 +12,8 @@ import ToolPanel, { Tool } from './ToolPanel';
 import EyeDropperInfo from './EyeDropperInfo';
 import LayerSelector from './LayerSelector';
 import CurvesModal from './CurvesModal';
-import SaveImageSelector from './SaveImageSelector'; // Новый компонент
+import SaveImageSelector from './SaveImageSelector';
+import KernelFilterModal from './KernelFilterModal' 
 
 interface ImageRendererProps {
   image: Blob;
@@ -52,6 +53,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
   const [activeLayerId, setActiveLayerId] = useState<'first' | 'second' | null>('first');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isCurvesModalVisible, setIsCurvesModalVisible] = useState(false);
+  const [isKernelModalVisible, setIsKernelModalVisible] = useState(false); // Состояние для модалки фильтра
   const [scalePercent, setScalePercent] = useState(100);
   const [activeTool, setActiveTool] = useState<Tool | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string | null>(null);
@@ -290,6 +292,112 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
     );
   };
 
+  const applyKernelFilter = (kernel: number[]) => {
+    const activeLayer = layers.find(layer => layer.id === activeLayerId);
+    if (!activeLayer || !activeLayer.imageData) return;
+
+    const width = activeLayer.imageData.width;
+    const height = activeLayer.imageData.height;
+    const srcData = activeLayer.imageData.data;
+    const newImageData = new ImageData(width, height);
+
+    // Обработка краев методом расширения (padding)
+    const paddedWidth = width + 2;
+    const paddedHeight = height + 2;
+    const paddedData = new Uint8ClampedArray(paddedWidth * paddedHeight * 4);
+
+    // Копирование исходных данных в центр paddedData
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const srcIndex = (y * width + x) * 4;
+        const paddedIndex = ((y + 1) * paddedWidth + (x + 1)) * 4;
+        paddedData[paddedIndex] = srcData[srcIndex];
+        paddedData[paddedIndex + 1] = srcData[srcIndex + 1];
+        paddedData[paddedIndex + 2] = srcData[srcIndex + 2];
+        paddedData[paddedIndex + 3] = srcData[srcIndex + 3];
+      }
+    }
+
+    // Обработка краев (копирование ближайших пикселей)
+    // Верхняя и нижняя границы
+    for (let x = 0; x < width; x++) {
+      const topSrc = (x) * 4;
+      const bottomSrc = ((height - 1) * width + x) * 4;
+      const topDest = (x + 1) * 4;
+      const bottomDest = ((height + 1) * paddedWidth + (x + 1)) * 4;
+      paddedData[topDest] = srcData[topSrc];
+      paddedData[topDest + 1] = srcData[topSrc + 1];
+      paddedData[topDest + 2] = srcData[topSrc + 2];
+      paddedData[topDest + 3] = srcData[topSrc + 3];
+      paddedData[bottomDest] = srcData[bottomSrc];
+      paddedData[bottomDest + 1] = srcData[bottomSrc + 1];
+      paddedData[bottomDest + 2] = srcData[bottomSrc + 2];
+      paddedData[bottomDest + 3] = srcData[bottomSrc + 3];
+    }
+    // Левая и правая границы
+    for (let y = 0; y < height; y++) {
+      const leftSrc = (y * width) * 4;
+      const rightSrc = (y * width + (width - 1)) * 4;
+      const leftDest = ((y + 1) * paddedWidth) * 4;
+      const rightDest = ((y + 1) * paddedWidth + (width + 1)) * 4;
+      paddedData[leftDest] = srcData[leftSrc];
+      paddedData[leftDest + 1] = srcData[leftSrc + 1];
+      paddedData[leftDest + 2] = srcData[leftSrc + 2];
+      paddedData[leftDest + 3] = srcData[leftSrc + 3];
+      paddedData[rightDest] = srcData[rightSrc];
+      paddedData[rightDest + 1] = srcData[rightSrc + 1];
+      paddedData[rightDest + 2] = srcData[rightSrc + 2];
+      paddedData[rightDest + 3] = srcData[rightSrc + 3];
+    }
+    // Углы
+    paddedData[0] = srcData[0];
+    paddedData[1] = srcData[1];
+    paddedData[2] = srcData[2];
+    paddedData[3] = srcData[3];
+    paddedData[(paddedWidth - 1) * 4] = srcData[(width - 1) * 4];
+    paddedData[(paddedWidth - 1) * 4 + 1] = srcData[(width - 1) * 4 + 1];
+    paddedData[(paddedWidth - 1) * 4 + 2] = srcData[(width - 1) * 4 + 2];
+    paddedData[(paddedWidth - 1) * 4 + 3] = srcData[(width - 1) * 4 + 3];
+    paddedData[(paddedHeight - 1) * paddedWidth * 4] = srcData[(height - 1) * width * 4];
+    paddedData[(paddedHeight - 1) * paddedWidth * 4 + 1] = srcData[(height - 1) * width * 4 + 1];
+    paddedData[(paddedHeight - 1) * paddedWidth * 4 + 2] = srcData[(height - 1) * width * 4 + 2];
+    paddedData[(paddedHeight - 1) * paddedWidth * 4 + 3] = srcData[(height - 1) * width * 4 + 3];
+    paddedData[((paddedHeight - 1) * paddedWidth + (paddedWidth - 1)) * 4] = srcData[((height - 1) * width + (width - 1)) * 4];
+    paddedData[((paddedHeight - 1) * paddedWidth + (paddedWidth - 1)) * 4 + 1] = srcData[((height - 1) * width + (width - 1)) * 4 + 1];
+    paddedData[((paddedHeight - 1) * paddedWidth + (paddedWidth - 1)) * 4 + 2] = srcData[((height - 1) * width + (width - 1)) * 4 + 2];
+    paddedData[((paddedHeight - 1) * paddedWidth + (paddedWidth - 1)) * 4 + 3] = srcData[((height - 1) * width + (width - 1)) * 4 + 3];
+
+    // Применение свертки
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const destIndex = (y * width + x) * 4;
+        let r = 0, g = 0, b = 0, a = 0;
+        for (let ky = 0; ky < 3; ky++) {
+          for (let kx = 0; kx < 3; kx++) {
+            const kernelValue = kernel[ky * 3 + kx];
+            const srcX = x + kx - 1;
+            const srcY = y + ky - 1;
+            const srcIndex = ((srcY + 1) * paddedWidth + (srcX + 1)) * 4;
+            r += paddedData[srcIndex] * kernelValue;
+            g += paddedData[srcIndex + 1] * kernelValue;
+            b += paddedData[srcIndex + 2] * kernelValue;
+            a += paddedData[srcIndex + 3] * kernelValue;
+          }
+        }
+        newImageData.data[destIndex] = Math.max(0, Math.min(255, Math.round(r)));
+        newImageData.data[destIndex + 1] = Math.max(0, Math.min(255, Math.round(g)));
+        newImageData.data[destIndex + 2] = Math.max(0, Math.min(255, Math.round(b)));
+        newImageData.data[destIndex + 3] = Math.max(0, Math.min(255, Math.round(a)));
+      }
+    }
+
+    setLayers(
+      layers.map(layer =>
+        layer.id === activeLayerId ? { ...layer, imageData: newImageData } : layer
+      )
+    );
+  };
+
   const scale = scalePercent / 100;
   const activeImageInfo = layers.find(layer => layer.id === activeLayerId)?.info || null;
   const activeLayer = layers.find(layer => layer.id === activeLayerId);
@@ -346,7 +454,13 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
             >
               Кривые
             </Button>
-            <SaveImageSelector activeLayer={activeLayer} /> {/* Новый компонент */}
+            <Button
+              onClick={() => setIsKernelModalVisible(true)}
+              disabled={!activeLayerId || !activeImageInfo || layers.length > 1} // Доступно только при одном слое
+            >
+              Фильтр свертки
+            </Button>
+            <SaveImageSelector activeLayer={activeLayer} />
           </div>
         </>
       )}
@@ -366,6 +480,14 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
           onApply={applyCurves}
           imageData={activeLayer?.imageData || null}
           showAlphaOnly={activeLayer?.showAlphaOnly || false}
+        />
+      )}
+      {activeImageInfo && (
+        <KernelFilterModal
+          visible={isKernelModalVisible}
+          onClose={() => setIsKernelModalVisible(false)}
+          onApply={applyKernelFilter}
+          imageData={activeLayer?.imageData || null}
         />
       )}
       <LayerSelector
