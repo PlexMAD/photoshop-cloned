@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/photoshop-cloned/static/css/main.a1192062.css",
-    "main.js": "/photoshop-cloned/static/js/main.06d6e52c.js",
+    "main.css": "/photoshop-cloned/static/css/main.414f87a1.css",
+    "main.js": "/photoshop-cloned/static/js/main.e097055d.js",
     "index.html": "/photoshop-cloned/index.html",
-    "main.a1192062.css.map": "/photoshop-cloned/static/css/main.a1192062.css.map",
-    "main.06d6e52c.js.map": "/photoshop-cloned/static/js/main.06d6e52c.js.map"
+    "main.414f87a1.css.map": "/photoshop-cloned/static/css/main.414f87a1.css.map",
+    "main.e097055d.js.map": "/photoshop-cloned/static/js/main.e097055d.js.map"
   },
   "entrypoints": [
-    "static/css/main.a1192062.css",
-    "static/js/main.06d6e52c.js"
+    "static/css/main.414f87a1.css",
+    "static/js/main.e097055d.js"
   ]
 }
