@@ -12,6 +12,7 @@ import ToolPanel, { Tool } from './ToolPanel';
 import EyeDropperInfo from './EyeDropperInfo';
 import LayerSelector from './LayerSelector';
 import CurvesModal from './CurvesModal';
+import SaveImageSelector from './SaveImageSelector'; // Новый компонент
 
 interface ImageRendererProps {
   image: Blob;
@@ -24,7 +25,7 @@ interface ImageInfo {
   hasAlpha: boolean;
 }
 
-interface Layer {
+export interface Layer {
   id: 'first' | 'second';
   imageData: ImageData | null;
   info: ImageInfo | null;
@@ -345,6 +346,7 @@ const ImageRenderer: FC<ImageRendererProps> = ({ image }) => {
             >
               Кривые
             </Button>
+            <SaveImageSelector activeLayer={activeLayer} /> {/* Новый компонент */}
           </div>
         </>
       )}
